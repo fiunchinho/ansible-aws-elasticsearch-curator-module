@@ -15,6 +15,7 @@ The following playbook will, when executed, remove indices older than 30 days.
             region: "eu-west-1"
             aws_access_key: "AKIAJ5CC6CARRKOX5V7Q"
             aws_secret_key: "cfDKFSXEo1CC6gfhfhCARRKOX5V7Q"
+            prefix: "logstash"
             older_than: 30
             time_unit: "days"
             timestring: "%Y.%d.%m"

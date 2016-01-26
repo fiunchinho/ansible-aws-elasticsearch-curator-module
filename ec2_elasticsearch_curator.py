@@ -52,6 +52,10 @@ options:
       - AWS secret key to sign the requests.
     required: true
     aliases: ['aws_secret_key', 'ec2_secret_key']
+  prefix:
+    description:
+      - Match indices whose name starts with this prefix.
+    default: "logstash"
   older_than:
     description:
       - It'll remove indices older than this value (in time units). For example, 3 days.
@@ -78,6 +82,7 @@ EXAMPLES = '''
     region: "eu-west-1"
     aws_access_key: "AKIAJ5CC6CARRKOX5V7Q"
     aws_secret_key: "cfDKFSXEo1CC6gfhfhCARRKOX5V7Q"
+    prefix: "logstash"
     older_than: 30
     time_unit: "days"
     timestring: "%Y.%d.%m"
