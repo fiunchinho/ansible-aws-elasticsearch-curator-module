@@ -108,7 +108,7 @@ def get_elasticsearch_client(module):
     awsauth = AWS4Auth(aws_access_key, aws_secret_key, region, 'es')
 
     return elasticsearch.Elasticsearch(
-            hosts=[{'host': host, 'port': port}],
+            hosts=[{'host': host, 'port': int(port)}],
             http_auth=awsauth,
             use_ssl=False,
             verify_certs=True,
