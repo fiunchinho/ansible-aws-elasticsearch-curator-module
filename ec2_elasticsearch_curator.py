@@ -153,7 +153,7 @@ def main():
         indices = filter_indices(module, client)
 
         if indices:
-            # curator.delete_indices(client, indices)
+            curator.delete_indices(client, indices)
             module.exit_json(changed=True, msg="The following indices have been removed: " + ", ".join(indices))
         else:
             module.exit_json(msg="No indices matching the filters were found. No indices removed")
