@@ -94,9 +94,10 @@ try:
     from requests_aws4auth import AWS4Auth
 
     logging.basicConfig()
+    HAS_DEPENDENCIES=True
 
 except ImportError:
-    module.fail_json(msg='requests_aws4auth, logging, elasticsearch and elasticsearch-curator are required for this module, install via pip or your package manager')
+    HAS_DEPENDENCIES=False
 
 def get_elasticsearch_client(module):
     host = module.params.get('host')
@@ -143,6 +144,9 @@ def main():
     module = AnsibleModule(
             argument_spec=argument_spec,
     )
+
+    if not HAS_DEPENDENCIES:
+        module.fail_json(msg='requests_aws4auth, logging, elasticsearch and elasticsearch-curator are required for this module, install via pip or your package manager')
 
     try:
         client = get_elasticsearch_client(module)
