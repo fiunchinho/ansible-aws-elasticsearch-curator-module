@@ -127,7 +127,7 @@ def filter_indices(module, client):
     _filter = curator.build_filter(kindOf='prefix', value=prefix)
     indices = curator.apply_filter(indices, **_filter)
 
-    _filter = curator.build_filter(kindOf='older_than', value=older_than, time_unit=time_unit, timestring=timestring)
+    _filter = curator.build_filter(kindOf='older_than', value=int(older_than), time_unit=time_unit, timestring=timestring)
     return curator.apply_filter(indices, **_filter)
 
 def main():
