@@ -56,7 +56,7 @@ options:
     description:
       - Match indices whose name starts with this prefix.
     default: "logstash"
-  older_than:
+  unit_count:
     description:
       - It'll remove indices older than this value (in time units). For example, 3 days.
     default: 7
@@ -83,7 +83,7 @@ EXAMPLES = '''
     aws_access_key: "AKIAJ5CC6CARRKOX5V7Q"
     aws_secret_key: "cfDKFSXEo1CC6gfhfhCARRKOX5V7Q"
     prefix: "logstash"
-    older_than: 30
+    unit_count: 30
     time_unit: "days"
     timestring: "%Y.%d.%m"
 '''
@@ -94,72 +94,72 @@ try:
     from requests_aws4auth import AWS4Auth
 
     logging.basicConfig()
-    HAS_DEPENDENCIES=True
+    HAS_DEPENDENCIES = True
 
 except ImportError:
-    HAS_DEPENDENCIES=False
+    HAS_DEPENDENCIES = False
 
-def get_elasticsearch_client(module):
-    host = module.params.get('host')
-    port = module.params.get('port')
-    region = module.params.get('region')
-    aws_access_key = module.params.get('aws_access_key')
-    aws_secret_key = module.params.get('aws_secret_key')
-
-    awsauth = AWS4Auth(aws_access_key, aws_secret_key, region, 'es')
-
-    return elasticsearch.Elasticsearch(
-            hosts=[{'host': host, 'port': int(port)}],
-            http_auth=awsauth,
-            use_ssl=False,
-            verify_certs=True,
-            connection_class=elasticsearch.RequestsHttpConnection
-    )
-
-def filter_indices(module, client):
-    prefix = module.params.get('prefix')
-    older_than = module.params.get('older_than')
-    time_unit = module.params.get('time_unit')
-    timestring = module.params.get('timestring')
-
-    indices = curator.get_indices(client)
-
-    _filter = curator.build_filter(kindOf='prefix', value=prefix)
-    indices = curator.apply_filter(indices, **_filter)
-
-    _filter = curator.build_filter(kindOf='older_than', value=int(older_than), time_unit=time_unit, timestring=timestring)
-    return curator.apply_filter(indices, **_filter)
 
 def main():
     argument_spec = ec2_argument_spec()
     argument_spec.update(dict(
-            host = dict(required=True),
-            port = dict(default=80),
-            prefix = dict(default="logstash"),
-            older_than = dict(default=7),
-            time_unit = dict(default="days", choices=["hours", "days", "weeks", "months"]),
-            timestring = dict(default="%Y.%m.%d"),
+        host=dict(required=True),
+        port=dict(default=80),
+        prefix=dict(default="logstash"),
+        unit_count=dict(default=7),
+        time_unit=dict(default="days", choices=["hours", "days", "weeks", "months"]),
+        timestring=dict(default="%Y.%m.%d"),
     ))
 
     module = AnsibleModule(
-            argument_spec=argument_spec,
+        argument_spec=argument_spec,
     )
 
     if not HAS_DEPENDENCIES:
-        module.fail_json(msg='requests_aws4auth, logging, elasticsearch and elasticsearch-curator are required for this module, install via pip or your package manager')
+        module.fail_json(
+            msg='requests_aws4auth, logging, elasticsearch and elasticsearch-curator are required for this module, install via pip or your package manager')
 
     try:
-        client = get_elasticsearch_client(module)
-        indices = filter_indices(module, client)
+        indices = delete_old_indices(
+            module.params.get('host'),
+            module.params.get('port'),
+            module.params.get('region'),
+            module.params.get('aws_access_key'),
+            module.params.get('aws_secret_key'),
+            module.params.get('prefix'),
+            module.params.get('timestring'),
+            module.params.get('time_unit'),
+            module.params.get('unit_count')
+        )
 
-        if indices:
-            curator.delete_indices(client, indices)
-            module.exit_json(changed=True, msg="The following indices have been removed: " + ", ".join(indices))
-        else:
-            module.exit_json(msg="No indices matching the filters were found. No indices removed")
-    except (StandardError), e:
+        module.exit_json(changed=True, msg="These indices have been removed: " + ", ".join(indices))
+
+    except curator.exceptions.NoIndices, e:
+        module.exit_json(changed=True, msg="No indices matching the filters were found. No indices removed")
+    except StandardError, e:
         module.fail_json(msg=str(e))
 
+
+def delete_old_indices(host, port, region, aws_access_key, aws_secret_key, prefix, timestring, time_unit, unit_count):
+    client = elasticsearch.Elasticsearch(
+        hosts=[{'host': host, 'port': int(port)}],
+        http_auth=AWS4Auth(aws_access_key, aws_secret_key, region, 'es'),
+        use_ssl=False,
+        verify_certs=True,
+        connection_class=elasticsearch.RequestsHttpConnection
+    )
+
+    indices = curator.IndexList(client)
+    indices.filter_by_regex(kind='prefix', value=prefix)
+    indices.filter_by_age(source='name', direction='older', timestring=timestring, unit=time_unit,
+                          unit_count=int(unit_count))
+
+    indices.empty_list_check()
+
+    delete_indices = curator.DeleteIndices(indices)
+    delete_indices.do_action()
+
+    return indices.working_list()
 
 # import module snippets
 from ansible.module_utils.basic import *
