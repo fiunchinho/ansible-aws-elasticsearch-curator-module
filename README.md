@@ -5,7 +5,7 @@ Ansible module that executes ElasticSearch curator to remove old indices. It doe
 This repository has two different branches to give support to Curator versions both higher and lower than v4.0.0.
 If you have an older ElasticSearch version and you need Curator version lower than 4.0.0 use the 1.x releases of this module. Otherwise, use the 2.x releases.
 
-## Examples
+## Usage
 The following playbook will, when executed, remove indices older than 30 days.
 
     ---
@@ -23,3 +23,12 @@ The following playbook will, when executed, remove indices older than 30 days.
             older_than: 30
             time_unit: "days"
             timestring: "%Y.%d.%m"
+
+Execute it like
+
+```bash
+$ virtualenv curator
+$ source curator/bin/activate
+$ pip install -r requirements.txt
+$ curator/bin/ansible-playbook playbook.yml --extra-vars "ec2_access_key=AKIAI********* ec2_secret_key=zJ************** elasticsearch_host=elastic.search.host.com elasticsearch_port=80 older_than=30"
+```
