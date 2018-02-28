@@ -1,3 +1,4 @@
 requests_aws4auth
 ansible
 elasticsearch-curator==3.5.1
+boto
